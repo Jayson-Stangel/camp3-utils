@@ -13,6 +13,7 @@ from bip_utils import (
     WifEncoder,              # only this, no WifVersion
 )
 
+
 # Your native-SegWit multisig account path (BIP-48)
 MULTISIG_PATH = "m/48'/0'/0'/2'"
 # Then we’ll encrypt the first external child at …/0/0
