@@ -5,7 +5,7 @@ import base64
 import argparse
 from mnemonic import Mnemonic
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
-from bip_utils import Bip39SeedGenerator, Bip32Slip10Secp256k1
+from bip_utils import Bip39SeedGenerator, Bip32Slip10Secp256k1, WifEncoder
 
 # BIP-48 multisig account path
 MULTISIG_PATH = "m/48'/0'/0'/2'"
@@ -15,7 +15,7 @@ WIF_DERIV_PATH = MULTISIG_PATH + "/0/0"
 def generate_mnemonic() -> str:
     return Mnemonic("english").to_mnemonic(os.urandom(32))
 
-def encrypt_wif(wif: str, aes_key: bytes) -> str:
+def encrypt_text(wif: str, aes_key: bytes) -> str:
     aesgcm = AESGCM(aes_key)
     nonce = os.urandom(12)
     ciphertext = aesgcm.encrypt(nonce, wif.encode(), None)
@@ -46,7 +46,9 @@ def main():
 
     # 4) First external child WIF
     child = root.DerivePath(WIF_DERIV_PATH)
-    wif = child.PrivateKey().ToWif()
+    # extract raw private key bytes and encode to WIF
+    priv_bytes = child.PrivateKey().Raw().ToBytes()
+    wif = WifEncoder.Encode(priv_bytes)
 
     # 5) AES key
     if args.encrypt_key.strip():
@@ -56,13 +58,19 @@ def main():
     aes_key_b64 = base64.b64encode(aes_key).decode()
 
     # 6) Encrypt WIF
-    encrypted_wif = encrypt_wif(wif, aes_key)
+    encrypted_wif = encrypt_text(wif, aes_key)
+
+    #7) Encrypt XPVR
+    encrypted_xprv = encrypt_text(xprv, aes_key)
+
+    
 
     # 7) Output everything
     print("MNEMONIC:", mnemonic)
     print("MASTER_XPRV:", xprv)
     print("ENCRYPTION_KEY:", aes_key_b64)
     print("ENCRYPTED_WIF:", encrypted_wif)
+    print("ENCRYPTED_XPRV:", encrypted_xprv)
 
 if __name__ == "__main__":
     main()
